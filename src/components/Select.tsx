@@ -25,9 +25,10 @@ interface SelectProps {
   disabled?: boolean
   className?: string
   onOpenChange?: (isOpen: boolean) => void
+  showValueTooltips?: boolean
 }
 
-export default function Select({ value, onChange, onReorder, options, disabled, className, onOpenChange }: SelectProps) {
+export default function Select({ value, onChange, onReorder, options, disabled, className, onOpenChange, showValueTooltips = false }: SelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [menuMaxHeight, setMenuMaxHeight] = useState(DEFAULT_DROPDOWN_MAX_HEIGHT)
   const [placement, setPlacement] = useState<'bottom' | 'top'>('bottom')
@@ -181,9 +182,9 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
     <div ref={containerRef} className="relative w-full">
       <div
         ref={triggerRef}
-        {...triggerTooltip.handlers}
+        {...(showValueTooltips ? triggerTooltip.handlers : {})}
         onClick={(e) => {
-          triggerTooltip.handlers.onClick?.()
+          if (showValueTooltips) triggerTooltip.handlers.onClick?.()
           handleToggle(e)
           triggerTooltip.dismiss()
         }}
@@ -193,9 +194,11 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
       >
         <span className="truncate">{selectedOption?.label ?? value}</span>
         <ChevronDownIcon className={`w-3.5 h-3.5 flex-shrink-0 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        <ViewportTooltip visible={triggerTooltip.visible} className="max-w-[300px] break-words whitespace-pre-wrap">
-          {selectedOption?.label ?? value}
-        </ViewportTooltip>
+        {showValueTooltips && (
+          <ViewportTooltip visible={triggerTooltip.visible} className="max-w-[300px] break-words whitespace-pre-wrap">
+            {selectedOption?.label ?? value}
+          </ViewportTooltip>
+        )}
       </div>
 
       {isOpen && (
@@ -263,6 +266,7 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
               }}
               onTouchStart={(e) => {
                 if (!option.draggable) {
+                  if (!showValueTooltips) return
                   clearOptionTooltipTimer()
                   optionLongPressTriggeredRef.current = false
                   optionTooltipTimerRef.current = window.setTimeout(() => {
@@ -273,6 +277,7 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
                 }
                 const target = e.target as HTMLElement
                 if (!target.closest('[data-drag-handle]')) {
+                  if (!showValueTooltips) return
                   clearOptionTooltipTimer()
                   optionLongPressTriggeredRef.current = false
                   optionTooltipTimerRef.current = window.setTimeout(() => {
@@ -387,17 +392,17 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
                 clearOptionTooltipTimer()
                 setHoveredOptionTooltip(null)
               }}
-              onMouseEnter={() => setHoveredOptionTooltip(option.value)}
+              onMouseEnter={() => showValueTooltips && setHoveredOptionTooltip(option.value)}
               onMouseLeave={() => {
                 clearOptionTooltipTimer()
                 setHoveredOptionTooltip(null)
               }}
-              onFocus={() => setHoveredOptionTooltip(option.value)}
+              onFocus={() => showValueTooltips && setHoveredOptionTooltip(option.value)}
               onBlur={() => {
                 clearOptionTooltipTimer()
                 setHoveredOptionTooltip(null)
               }}
-              className={`relative flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs transition-colors ${
+              className={`relative flex min-h-9 cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs transition-colors ${
                 draggedValue === option.value
                   ? 'opacity-40 bg-gray-100 dark:bg-white/[0.04]'
                   : option.variant === 'action'
@@ -415,7 +420,7 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
               {dragOverValue === option.value && dragDropPosition === 'after' && draggedValue !== option.value && (
                 <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-blue-500 rounded-full z-40 shadow-sm pointer-events-none" />
               )}
-              {hoveredOptionTooltip === option.value && (
+              {showValueTooltips && hoveredOptionTooltip === option.value && (
                 <ViewportTooltip visible={true} className="max-w-[300px] break-words whitespace-pre-wrap">
                   {option.label}
                 </ViewportTooltip>
@@ -449,7 +454,7 @@ export default function Select({ value, onChange, onReorder, options, disabled, 
                         action.onClick()
                         setIsOpen(false)
                       }}
-                      className={`rounded-md p-1.5 transition flex items-center justify-center ${action.variant === 'danger'
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded transition ${action.variant === 'danger'
                         ? 'text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10'
                         : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-white/[0.08] dark:hover:text-gray-200'}`}
                     >
